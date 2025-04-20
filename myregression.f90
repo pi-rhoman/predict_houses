@@ -85,8 +85,11 @@ contains
                         mean = sum(dataset(column_number,:)) / n 
                         stddev = sqrt(sum((dataset(column_number,:) - mean)**2)/n)
                         dataset(column_number,:) = (dataset(column_number,:) - mean) / stddev
+
                 end do
         end subroutine
+
+    
 end module
 
 
@@ -94,16 +97,16 @@ program main
         use util
         implicit none
         real (kind = 4), allocatable, dimension(:,:) :: dataset
-!        integer (kind = 4) m
-!        integer (kind = 4) n
-!        real (kind = 4), allocatable, dimension(:,:) :: a
-!        real (kind = 4), allocatable, dimension(:) :: b 
-!        real (kind = 4), allocatable, dimension(:) :: x
-        integer (kind = 4):: m = 3
-        integer (kind = 4):: n = 464
-        real (kind = 4):: a(n, m)
-        real (kind = 4):: b(n)
-        real (kind = 4):: x(m)
+        integer (kind = 4) m
+        integer (kind = 4) n
+        real (kind = 4), allocatable, dimension(:,:) :: a
+        real (kind = 4), allocatable, dimension(:) :: b 
+        real (kind = 4), allocatable, dimension(:) :: x
+!        integer (kind = 4):: m = 3
+!        integer (kind = 4):: n = 464
+!        real (kind = 4):: a(n, m)
+!        real (kind = 4):: b(n)
+!        real (kind = 4):: x(m)
         character(len=50) :: progname
         character(len=100) :: filename
         integer (kind = 4) :: i, j
@@ -119,19 +122,28 @@ program main
 
         call load_example(filename, dataset)
         
-!        m = size(dataset, dim=1) 
-!        n = size(dataset, dim=2)
+        m = size(dataset, dim=1) 
+        n = size(dataset, dim=2)
        
-        print *, n
 
         a = dataset(1:m-1,:)
-        call scale_features(a, m, n)
+        call scale_features(a, m-1, n)
+        a = transpose(a)
 
         b = dataset(m,:)
-        
-        call normal_l2 ( a, n, m-1, b, 0, x )
-        !write (*, *)  ((a(i, j), " ", i=1, size(a, dim=1)), j, new_line("A"), j=1, size(a, dim=2))
+        allocate(x(m-1))
+!        
+        print *, "dim a", size(a, dim=1), size(a,dim=2)
+        print *, "n", n
+        print *, "m-1",m-1
+        print *, "dim b", size(b)
+        print *, "dim x", size(x)
+  
+!        print *, b
 
+!        write (*, *)  ((a(i, j), " ", i=1, size(a, dim=1)), new_line("A"), j=1, size(a, dim=2))
+        call normal_l2( a, n, m-1, b, 0, x )
 
+        print *, x
 
 end program
