@@ -4,18 +4,22 @@ program main
         double precision, allocatable, dimension(:,:) :: dataset
         integer (kind = 4) m
         integer (kind = 4) n
-        double precision, allocatable, dimension(:,:) :: a
-        double precision, allocatable, dimension(:) :: b 
-        double precision, allocatable, dimension(:) :: x
-        double precision, allocatable, dimension(:) :: ATb
-        double precision, allocatable, dimension(:,:) :: Ainv
+        double precision, allocatable, dimension(:,:) :: X 
+        double precision, allocatable, dimension(:) :: y 
+        double precision, allocatable, dimension(:) :: model
+        double precision, allocatable, dimension(:,:) :: Xinv
         character(len=50) :: progname
         character(len=100) :: filename
         
         integer (kind = 4) :: info
+        integer (kind = 4) :: ierror
         double precision, allocatable, dimension(:) :: pivot
         
-
+        double precision:: flarea
+        integer :: bdrms
+        integer :: bthrms
+        double precision :: estimate
+        ! load the csv
         call get_command_argument(0, progname)
         if (command_argument_count().ne.1) then
                 print *, "Usage: "// trim(progname)//" <filename>"
@@ -26,35 +30,63 @@ program main
 
         call read_csv(filename, dataset)
         
+        !get the size of the dataset
         m = size(dataset, dim=1) 
         n = size(dataset, dim=2)
        
-
-        allocate(a(m, n))
-        a(1, :) = 1
-        a(2:m, :) = dataset(1:m-1,:)
-        !call scale_features(a, m, n)
+        allocate(X(m, n))
+        !fill the first column with 1s 
+        X(1, :) = 1
+        !separate features from target vales
+        X(2:m, :) = dataset(1:m-1,:)
+        y = dataset(m,:)
         
-        b = dataset(m,:)
         
-        allocate(x(m))
+        !inverse(transpose(X).X)
+        X = transpose(X)
+        Xinv = matmul(transpose(X), X)
 
-        a = transpose(a)
-        Ainv = matmul(transpose(a), a)
-        print *, size(Ainv, dim=1), size(Ainv, dim=2)
+        call inverse(Xinv)
 
-        call inverse(Ainv)
-        print *, size(Ainv, dim=1), size(Ainv, dim=2)
+        !transpose(X).y
+        model = matmul(transpose(X), y)
 
-        print *, size(b)
-        ATb = matmul(transpose(a), b)
-        
-        print *, size(ATb)
-
-        allocate(pivot(size(Ainv, dim=1)))
+        allocate(pivot(size(Xinv, dim=1)))
  
-        call DGESV(size(Ainv, dim=1), 1, Ainv, size(Ainv, dim=1), pivot, ATb, size(ATb), info) 
+        !inverse(transpose(X).X).model = transpose(X).y
+        call DGESV(size(Xinv, dim=1), 1, Xinv, size(Xinv, dim=1), pivot, model, size(model), info) 
 
-        print *, ATb
+       
+        !use the model to make a prediction
 
+        print *, "Total floor area (meters squared)"
+        ierror = 1
+        do while (ierror.ne.0)
+                read(*, '(d20.0)', iostat=ierror) flarea
+                if (ierror.ne.0) then
+                        print *, "Please enter a valid decimal"
+                end if
+        end do
+        
+        print *, "Number of bedrooms"
+        ierror = 1
+        do while (ierror.ne.0)
+                read(*, '(i10)', iostat=ierror) bdrms
+                if (ierror.ne.0) then
+                        print *, "Please enter a valid integer"
+                end if
+        end do
+
+        print *, "Number of bathrooms"
+        ierror = 1
+        do while (ierror.ne.0)
+                read(*, '(i10)', iostat=ierror) bthrms
+                if (ierror.ne.0) then
+                        print *, "Please enter a valid integer"
+                end if
+        end do
+        
+        estimate = model(1) + model(2) * flarea + model(3) * bdrms + model(4) * bthrms
+        print *, "Your house should cost (thousands):"
+        print *, estimate
 end program
